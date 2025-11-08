@@ -647,9 +647,22 @@ class ValdiDoctor {
     // Check if Java is available
     if (checkCommandExists('java')) {
       try {
-        const { stdout } = await runCliCommand('java -version');
-        const versionInfo = stdout || '';
-        const versionMatch = versionInfo.match(/version "([^"]+)"/);
+        const { stdout, stderr } = await runCliCommand('java -version');
+        // java -version typically outputs to stderr, but check both
+        const versionInfo = stderr || stdout || '';
+        
+        // Try multiple version string formats:
+        // 1. version "17.0.16" (older format)
+        // 2. openjdk 17.0.16 (OpenJDK format)
+        // 3. java version "17.0.16" (alternative format)
+        let versionMatch = versionInfo.match(/version "([^"]+)"/);
+        if (!versionMatch) {
+          versionMatch = versionInfo.match(/openjdk\s+(\d+\.\d+\.\d+)/i);
+        }
+        if (!versionMatch) {
+          versionMatch = versionInfo.match(/java\s+(\d+\.\d+\.\d+)/i);
+        }
+        
         const version = versionMatch?.[1] ?? 'Unknown version';
 
         // Check if Java version is 17 or higher
@@ -663,7 +676,7 @@ class ValdiDoctor {
             message: `Java is installed: ${version}`,
             category: 'Java installation',
           });
-        } else {
+        } else if (majorVersion > 0) {
           this.addResult({
             name: 'Java Runtime',
             status: 'warn',
@@ -671,6 +684,15 @@ class ValdiDoctor {
             details: 'dev_setup now installs Java 17 for better compatibility',
             fixable: true,
             fixCommand: os.platform() === 'darwin' ? 'brew install openjdk@17' : 'sudo apt install openjdk-17-jdk',
+            category: 'Java installation',
+          });
+        } else {
+          // Could detect java but not parse version
+          this.addResult({
+            name: 'Java Runtime',
+            status: 'pass',
+            message: 'Java is installed',
+            details: `Version info: ${versionInfo.split('\n')[0] || 'Unable to parse version'}`,
             category: 'Java installation',
           });
         }
@@ -710,7 +732,7 @@ class ValdiDoctor {
         message: 'JAVA_HOME not set or invalid',
         details: 'dev_setup configures JAVA_HOME for Android development',
         fixable: true,
-        fixCommand: os.platform() === 'darwin' ? 'export JAVA_HOME=`/usr/libexec/java_home -v 11`' : 'Set JAVA_HOME environment variable',
+        fixCommand: os.platform() === 'darwin' ? 'export JAVA_HOME=`/usr/libexec/java_home -v 17`' : 'Set JAVA_HOME environment variable',
         category: 'Java installation',
       });
     }
