@@ -44,6 +44,7 @@ class ValueSchemaParser {
 public:
     static Result<ValueSchema> parse(std::string_view str);
     static std::optional<ValueSchema> parse(TextParser& parser);
+    static std::optional<ValueSchema> parseClassSchema(TextParser& parser, bool includeProperties);
 };
 
 } // namespace Valdi

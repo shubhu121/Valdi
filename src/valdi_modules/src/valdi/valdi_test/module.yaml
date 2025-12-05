@@ -1,5 +1,7 @@
 output_target: debug
 
+single_file_codegen: true
+
 dependencies:
   - jasmine
   - source_map

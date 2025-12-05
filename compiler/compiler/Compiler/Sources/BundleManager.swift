@@ -240,12 +240,10 @@ class BundleManager {
         let parsedIosOutputTarget = try Self.parseOutputTarget(mapping: iosConfig)
         let parsedAndroidOutputTarget = try Self.parseOutputTarget(mapping: androidConfig)
         let parsedWebOutputTarget = try Self.parseOutputTarget(mapping: webConfig)
-        let parsedCppOutputTarget = try Self.parseOutputTarget(mapping: cppConfig)
 
         let iosOutputTarget: ModuleOutputTarget?
         let androidOutputTarget: ModuleOutputTarget?
         let webOutputTarget: ModuleOutputTarget?
-        let cppOutputTarget = parsedCppOutputTarget
         switch (parsedCommonOutputTarget, parsedIosOutputTarget, parsedAndroidOutputTarget) {
         case (.none, .none, .none):
             throw CompilerError("No output_target in the \(bundleName) module.yaml. Supported values are 'debug' and 'release'")
@@ -357,7 +355,7 @@ class BundleManager {
                                                         iosGeneratedContextFactories: iosGeneratedContextFactories,
                                                         androidOutputTarget: androidOutputTarget,
                                                         webOutputTarget: webOutputTarget,
-                                                        cppOutputTarget: cppOutputTarget,
+                                                        cppOutputTarget: .releaseReady,
                                                         downloadableAssets: downloadableAssets,
                                                         downloadableSources: downloadableSources,
                                                         inclusionConfig: inclusionConfig,

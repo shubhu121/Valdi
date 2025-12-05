@@ -19,6 +19,7 @@ load(
     "IOS_OUTPUT_BASE",
     "IOS_SWIFT_SUFFIX",
 )
+load(":extract_cpp_srcs.bzl", "extract_cpp_srcs")
 load(":extract_objc_srcs.bzl", "extract_objc_srcs")
 load(":extract_swift_srcs.bzl", "extract_swift_srcs")
 load(":generate_android_manifest.bzl", "generate_android_manifest")
@@ -208,26 +209,29 @@ def valdi_module(
     # A module has resource bundle if there are resources on the disk and resources are not downloaded remotely at runtime.
     _setup_ios_target(name, all_valdi_module_deps, ios_deps, compiled_module_target, ios_module_name, sql_db_names, ios_generated_context_factories, bool(res), downloadable_assets, ios_output_target, visibility, ios_language, single_file_codegen)
 
-    #### 5. Setup Web target
+    ### 5. Setup the C++ target named {name}_cpp
+    _setup_cpp_target(name, all_valdi_module_deps, compiled_module_target, visibility, single_file_codegen)
+
+    #### 6. Setup Web target
     _setup_web_target(name, all_valdi_module_deps, compiled_module_target, visibility, compilation_mode, web_deps)
 
-    ### 6. Setup the native targets named {name}_native
+    ### 7. Setup the native targets named {name}_native
     _setup_native_target(name, all_valdi_module_deps, native_deps, compiled_module_target, visibility)
 
-    ### 7. Setup the test target
+    ### 8. Setup the test target
     _setup_test_target(name, test_target_name, srcs)
 
-    ### 8. Setup the prepared upload artifact if set
+    ### 9. Setup the prepared upload artifact if set
     if prepared_upload_artifact_name:
         _setup_prepared_upload_artifact(name, prepared_upload_artifact_name, compiled_module_target, visibility)
 
-    ### 9. Setup the hotreload target
+    ### 10. Setup the hotreload target
     _valdi_hotreload(
         name = name + "_hotreload",
         targets = [":{}".format(name)],
     )
 
-    ### 10: Setup projectsync target, used for VSCode autocompletion
+    ### 11: Setup projectsync target, used for VSCode autocompletion
     _setup_projectsync_target(
         name = name + "_projectsync",
         target = ":{}".format(name),
@@ -1012,6 +1016,66 @@ def _exported_objc_lib(name, ios_module_name, objc_hdrs, objc_srcs, single_file_
         **kwargs
     )
 
+def _setup_cpp_target(name, deps, compiled_module_target, visibility, single_file_codegen):
+    # C++ codegen always outputs to release configuration
+    if single_file_codegen:
+        # For single file codegen, extract individual .cpp and .hpp files
+        extract_valdi_module_output(
+            name = "cpp.srcs",
+            compiled_module = compiled_module_target,
+            output_name = "cpp_srcs",
+        )
+
+        extract_valdi_module_output(
+            name = "cpp.hdrs",
+            compiled_module = compiled_module_target,
+            output_name = "cpp_hdrs",
+        )
+
+        cpp_srcs = [":cpp.srcs"]
+        cpp_hdrs = [":cpp.hdrs"]
+    else:
+        # For multi-file codegen, use extract_cpp_srcs to filter by extension
+        cpp_srcs_name = name + "_cpp_srcs"
+        cpp_hdrs_name = name + "_cpp_hdrs"
+
+        extract_cpp_srcs(
+            name = cpp_srcs_name,
+            compiled_module = compiled_module_target,
+            extension = ".cpp",
+        )
+
+        extract_cpp_srcs(
+            name = cpp_hdrs_name,
+            compiled_module = compiled_module_target,
+            extension = ".hpp",
+        )
+
+        cpp_srcs = [native.package_relative_label(cpp_srcs_name)]
+        cpp_hdrs = [native.package_relative_label(cpp_hdrs_name)]
+
+    # For single_file_codegen, we need to strip the include prefix to make headers findable
+    # For multi-file codegen, the extract_cpp_srcs rule preserves directory structure
+    # C++ codegen always outputs to release configuration
+    cc_library_kwargs = {
+        "name": name + "_cpp",
+        "srcs": cpp_srcs,
+        "hdrs": cpp_hdrs,
+        "deps": [_cpp_target_for_target(dep) for dep in deps] + ["@valdi//valdi_core:valdi_core_cc"],
+        "visibility": visibility,
+    }
+
+    if single_file_codegen:
+        # For single file mode, strip the cpp/release/src prefix
+        # so that #include "module/file.hpp" works correctly
+        cc_library_kwargs["strip_include_prefix"] = "cpp/release/src"
+    else:
+        # For multi-file mode, the extracted directory contains subdirectories
+        # We need to add it as an include path
+        cc_library_kwargs["includes"] = [name + "_cpp_hdrs"]
+
+    native.cc_library(**cc_library_kwargs)
+
 def _setup_native_target(name, deps, additional_native_deps, compiled_module_target, visibility):
     ################
     ####
@@ -1115,6 +1179,10 @@ def _kt_target_for_target(target):
 def _native_target_for_target(target):
     label = native.package_relative_label(target)
     return label.relative(":" + label.name + "_native")
+
+def _cpp_target_for_target(target):
+    label = native.package_relative_label(target)
+    return label.relative(":" + label.name + "_cpp")
 
 def _objc_target_for_target(target, target_suffix = ""):
     label = native.package_relative_label(target)

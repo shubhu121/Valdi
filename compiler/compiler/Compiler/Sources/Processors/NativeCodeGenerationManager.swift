@@ -121,7 +121,7 @@ class NativeCodeGenerationManager {
             iosContainingType?.applyImportPrefix(iosImportPrefix: compilationItem.bundleInfo.iosModuleName, isOverridden: false)
         }
 
-        let cppType = try resolveGeneratedCppType(commentedFile: commentedFile, annotation: annotation, symbolName: symbolName, bundleInfo: compilationItem.bundleInfo)
+        let cppType = try resolveGeneratedCppType(commentedFile: commentedFile, annotation: annotation, symbolName: symbolName, symbolType: .class, bundleInfo: compilationItem.bundleInfo)
 
         return NativeTypesToGenerate(
             iosType: compilationItem.bundleInfo.iosCodegenEnabled ? iosContainingType : nil,
@@ -302,19 +302,20 @@ class NativeCodeGenerationManager {
     private func resolveGeneratedCppType(commentedFile: TypeScriptCommentedFile,
                                          annotation: ValdiTypeScriptAnnotation,
                                          symbolName: String,
+                                         symbolType: CPPTypeDeclaration.SymbolType,
                                          bundleInfo: CompilationItem.BundleInfo) throws -> CPPType? {
         guard bundleInfo.cppCodegenEnabled else { return nil }
         let generatedClassName = inferCppType(symbolName: symbolName, bundleInfo: bundleInfo)
 
         if let typeName = annotation.parameters?["cpp"] {
-            return CPPType(declaration: CPPTypeDeclaration(name: typeName), moduleName: bundleInfo.name, includePrefix: bundleInfo.projectConfig.cppImportPathPrefix)
+            return CPPType(declaration: CPPTypeDeclaration(name: typeName, symbolType: symbolType), module: bundleInfo, includePrefix: bundleInfo.projectConfig.cppImportPathPrefix)
         }
 
         guard let generatedClassName = generatedClassName else {
             try throwAnnotationError(annotation, commentedFile, message: "Cannot infer the generated C++ class type for \(symbolName) as the 'cpp.default_class_prefrix' value was not set in the valdi_config.yaml or module.yaml.")
         }
 
-        return CPPType(declaration: CPPTypeDeclaration(name: generatedClassName), moduleName: bundleInfo.name, includePrefix: bundleInfo.projectConfig.cppImportPathPrefix)
+        return CPPType(declaration: CPPTypeDeclaration(name: generatedClassName, symbolType: symbolType), module: bundleInfo, includePrefix: bundleInfo.projectConfig.cppImportPathPrefix)
     }
 
     @discardableResult func registerNativeClass(commentedFile: TypeScriptCommentedFile,
@@ -328,7 +329,19 @@ class NativeCodeGenerationManager {
         let iosTypeName = try resolveGeneratedIOSClassName(commentedFile: commentedFile, annotation: annotation, symbolName: symbol.text, bundleInfo: bundleInfo)
         let swiftTypeName = try resolveGeneratedSwiftClassName(commentedFile: commentedFile, annotation: annotation, symbolName: symbol.text, bundleInfo: bundleInfo)
         let androidClassName = try resolveGeneratedAndroidClassName(commentedFile: commentedFile, annotation: annotation, symbolName: symbol.text, bundleInfo: bundleInfo)
-        let cppType = try resolveGeneratedCppType(commentedFile: commentedFile, annotation: annotation, symbolName: symbol.text, bundleInfo: bundleInfo)
+
+        let cppSymbolType: CPPTypeDeclaration.SymbolType
+        switch kind {
+        case .interface:
+            cppSymbolType = .class
+        case .class:
+            cppSymbolType = .class
+        case .enum:
+            cppSymbolType = .enum
+        case .stringEnum:
+            cppSymbolType = .enum
+        }
+        let cppType = try resolveGeneratedCppType(commentedFile: commentedFile, annotation: annotation, symbolName: symbol.text, symbolType: cppSymbolType, bundleInfo: bundleInfo)
 
         let iosType = iosTypeName.flatMap { iosTypeName in
             var iosType = IOSType(name: iosTypeName, swiftName: swiftTypeName, bundleInfo: bundleInfo, kind: kind, iosLanguage: bundleInfo.iosLanguage)

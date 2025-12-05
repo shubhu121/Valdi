@@ -1,7 +1,7 @@
 package com.snap.valdi.jsmodules
 
 import com.snap.valdi.utils.ValdiMarshaller
-import com.snapchat.client.valdi.JSRuntime
+import com.snapchat.client.valdi_core.JSRuntime
 
 interface ValdiJSRuntime: JSThreadDispatcher {
 

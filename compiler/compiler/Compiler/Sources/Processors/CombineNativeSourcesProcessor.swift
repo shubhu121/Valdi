@@ -17,12 +17,14 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
 
     private let logger: ILogger
     private let compilerConfig: CompilerConfig
+    private let projectConfig: ValdiProjectConfig
     private let bundleManager: BundleManager
     private var cachedNativeSourceByModule = Synchronized(data: [CompilationItem.BundleInfo: [SelectedItem<NativeSource>]]())
 
-    init(logger: ILogger, compilerConfig: CompilerConfig, bundleManager: BundleManager) {
+    init(logger: ILogger, compilerConfig: CompilerConfig, projectConfig: ValdiProjectConfig, bundleManager: BundleManager) {
         self.logger = logger
         self.compilerConfig = compilerConfig
+        self.projectConfig = projectConfig
         self.bundleManager = bundleManager
     }
 
@@ -60,6 +62,23 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
         for file in files {
             data +=  "//\n// \(file.filename)\n//\n\n"
             data += file.content
+            data += "\n"
+        }
+
+        return .string(data)
+    }
+
+    private func mergeCppHeaders(files: [FileAndContent]) -> File {
+        let pragmaOnce = "#pragma once"
+        var data = "\(pragmaOnce)\n"
+
+        for file in files {
+            data +=  "//\n// \(file.filename)\n//\n\n"
+
+            for line in file.content.split(separator: "\n", omittingEmptySubsequences: false) where line != pragmaOnce {
+                data += line
+                data += "\n"
+            }
             data += "\n"
         }
 
@@ -144,6 +163,7 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
         var firstItemSettingRelativePath: CompilationItem?
 
         var isKotlin = false
+        var isCppHeader = false
         var fileAndContentArray = [FileAndContent]()
 
         for nativeSource in sortedNativeSources {
@@ -157,6 +177,8 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
                 }
                 if nativeSource.data.filename.hasSuffix(".kt") {
                     isKotlin = true
+                } else if nativeSource.data.filename.hasSuffix(".hpp") {
+                    isCppHeader = true
                 }
                 let nativeSourceContent = try nativeSource.data.file.readString()
                 fileAndContentArray.append(FileAndContent(filename: nativeSource.data.filename, content: nativeSourceContent))
@@ -169,6 +191,9 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
         if isKotlin {
             let file = mergeKotlinSources(files: fileAndContentArray)
             generatedNativeSource = NativeSource(relativePath: nil, filename: filename, file: file, groupingIdentifier: filename, groupingPriority: 0)
+        } else if isCppHeader {
+            let file = mergeCppHeaders(files: fileAndContentArray)
+            generatedNativeSource = NativeSource(relativePath: relativePath, filename: filename, file: file, groupingIdentifier: filename, groupingPriority: 0)
         } else {
             let file = mergeAnySources(files: fileAndContentArray)
             generatedNativeSource = NativeSource(relativePath: relativePath, filename: filename, file: file, groupingIdentifier: filename, groupingPriority: 0)
@@ -182,17 +207,21 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
                                outputTarget: .all)
     }
 
+    private func makeEmptySource(bundle: CompilationItem.BundleInfo, filename: String, platform: Platform, relativePath: String? = nil) -> CompilationItem {
+        let nativeSource = NativeSource(relativePath: relativePath, filename: filename, file: .string(""), groupingIdentifier: filename, groupingPriority: 0)
+        return CompilationItem(generatedFromBundleInfo: bundle, kind: .nativeSource(nativeSource), platform: platform, outputTarget: .all)
+    }
+
     private func generateEmptySourcesIfNeeded(bundle: CompilationItem.BundleInfo,
                                               matchedItems: [SelectedItem<NativeSource>]) -> [CompilationItem] {
         var output = [CompilationItem]()
         let hasKotlin = matchedItems.contains(where: { $0.data.filename.hasSuffix(".kt") })
         let hasSwift = matchedItems.contains(where: { $0.data.filename.hasSuffix(".swift") })
         let hasObjectiveC = matchedItems.contains(where: { $0.data.filename.hasSuffix(".m") })
+        let hasCpp = matchedItems.contains(where: { $0.data.filename.hasSuffix(".cpp") })
 
         if bundle.androidCodegenEnabled && !hasKotlin {
-            let emptyKotlinFilename = "\(bundle.name).kt"
-            let nativeSource = NativeSource(relativePath: nil, filename: emptyKotlinFilename, file: .string(""), groupingIdentifier: emptyKotlinFilename, groupingPriority: 0)
-            output.append(CompilationItem(generatedFromBundleInfo: bundle, kind: .nativeSource(nativeSource), platform: .android, outputTarget: .all))
+            output.append(makeEmptySource(bundle: bundle, filename: "\(bundle.name).kt", platform: .android))
         }
 
         if bundle.iosCodegenEnabled && bundle.iosLanguage == .objc && !hasObjectiveC {
@@ -216,9 +245,18 @@ final class CombineNativeSourcesProcessor: CompilationProcessor {
         }
 
         if bundle.iosCodegenEnabled && bundle.iosLanguage == .swift && !hasSwift {
-            let emptySwiftFileName = "\(bundle.iosModuleName).swift"
-            let nativeSource = NativeSource(relativePath: nil, filename: emptySwiftFileName, file: .string(""), groupingIdentifier: emptySwiftFileName, groupingPriority: 0)
-            output.append(CompilationItem(generatedFromBundleInfo: bundle, kind: .nativeSource(nativeSource), platform: .ios, outputTarget: .all))
+            output.append(makeEmptySource(bundle: bundle, filename: "\(bundle.iosModuleName).swift", platform: .ios))
+        }
+
+        if bundle.cppCodegenEnabled && !hasCpp {
+            let relativePath: String
+            if let cppImportPathPrefix = projectConfig.cppImportPathPrefix {
+                relativePath = "\(cppImportPathPrefix)\(bundle.name)"
+            } else {
+                relativePath = bundle.name
+            }
+            output.append(makeEmptySource(bundle: bundle, filename: "\(bundle.name).cpp", platform: .cpp, relativePath: relativePath))
+            output.append(makeEmptySource(bundle: bundle, filename: "\(bundle.name).hpp", platform: .cpp, relativePath: relativePath))
         }
 
         return output

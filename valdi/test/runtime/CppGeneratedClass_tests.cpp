@@ -1,8 +1,11 @@
+#include "valdi_core/cpp/Marshalling/CppGeneratedClass.hpp"
+#include "valdi_core/cpp/Marshalling/CppGeneratedGenericClass.hpp"
+#include "valdi_core/cpp/Marshalling/CppMarshaller.hpp"
+#include "valdi_core/cpp/Marshalling/RegisteredCppGeneratedClass.hpp"
 #include "valdi_core/cpp/Schema/ValueSchemaRegistry.hpp"
-#include "valdi_core/cpp/Utils/CppGeneratedClass.hpp"
-#include "valdi_core/cpp/Utils/CppMarshaller.hpp"
 #include "valdi_core/cpp/Utils/ValueFunctionWithCallable.hpp"
 #include "valdi_core/cpp/Utils/ValueTypedProxyObject.hpp"
+#include <cstddef>
 #include <gtest/gtest.h>
 
 using namespace Valdi;
@@ -15,101 +18,100 @@ struct MyCard : public CppGeneratedModel {
     double width = 0;
     double height = 0;
     std::optional<bool> selected;
-    std::optional<Function<Result<bool>(StringBox)>> onTap;
+    std::optional<Function<bool(StringBox)>> onTap;
 
-    MyCard() = default;
-    ~MyCard() override = default;
+    MyCard() : CppGeneratedModel(getRegisteredClass()) {}
+    ~MyCard() = default;
 
-    static RegisteredCppGeneratedClass registeredClass;
-
-    static void marshall(ExceptionTracker& exceptionTracker, const Ref<MyCard>& value, Value& out) {
-        auto& self = *value;
-        CppMarshaller::marshallTypedObject(exceptionTracker,
-                                           registeredClass,
-                                           out,
-                                           self.title,
-                                           self.subtitle,
-                                           self.width,
-                                           self.height,
-                                           self.selected,
-                                           self.onTap);
+    static RegisteredCppGeneratedClass* getRegisteredClass() {
+        static auto* kRegisteredClass = CppGeneratedClass::registerSchema(
+            "c 'MyCard'{'title': s, 'subtitle': s?, 'width': d, 'height': d, 'selected': b?, 'onTap': f?(s):b}");
+        return kRegisteredClass;
     }
 
-    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, Ref<MyCard>& out) {
-        out = makeShared<MyCard>();
-        auto& self = *out;
+    static void marshall(ExceptionTracker& exceptionTracker, const MyCard& value, Value& out) {
+        CppMarshaller::marshallTypedObject(exceptionTracker,
+                                           *getRegisteredClass(),
+                                           out,
+                                           value.title,
+                                           value.subtitle,
+                                           value.width,
+                                           value.height,
+                                           value.selected,
+                                           value.onTap);
+    }
+
+    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, MyCard& out) {
         CppMarshaller::unmarshallTypedObject(exceptionTracker,
-                                             registeredClass,
+                                             *getRegisteredClass(),
                                              value,
-                                             self.title,
-                                             self.subtitle,
-                                             self.width,
-                                             self.height,
-                                             self.selected,
-                                             self.onTap);
+                                             out.title,
+                                             out.subtitle,
+                                             out.width,
+                                             out.height,
+                                             out.selected,
+                                             out.onTap);
     }
 };
-
-RegisteredCppGeneratedClass MyCard::registeredClass = CppGeneratedClass::registerSchema(
-    "c 'MyCard'{'title': s, 'subtitle': s?, 'width': d, 'height': d, 'selected': b?, 'onTap': f?(s):b}");
 
 struct MyCardSection : public CppGeneratedModel {
-    std::vector<Ref<MyCard>> cards;
+    std::vector<MyCard> cards;
     std::vector<int64_t> ids;
 
-    MyCardSection() = default;
-    ~MyCardSection() override = default;
+    MyCardSection() : CppGeneratedModel(getRegisteredClass()) {}
+    ~MyCardSection() = default;
 
-    static RegisteredCppGeneratedClass registeredClass;
-
-    static void marshall(ExceptionTracker& exceptionTracker, const Ref<MyCardSection>& value, Value& out) {
-        auto& self = *value;
-        CppMarshaller::marshallTypedObject(exceptionTracker, registeredClass, out, self.cards, self.ids);
+    static RegisteredCppGeneratedClass* getRegisteredClass() {
+        static auto* kRegisteredClass =
+            CppGeneratedClass::registerSchema("c 'MyCardSection'{'cards': a<r:'[0]'>, 'ids': a<l>}",
+                                              []() -> TypeReferencesVec { return {MyCard::getRegisteredClass()}; });
+        return kRegisteredClass;
     }
 
-    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, Ref<MyCardSection>& out) {
-        out = makeShared<MyCardSection>();
-        auto& self = *out;
-        CppMarshaller::unmarshallTypedObject(exceptionTracker, registeredClass, value, self.cards, self.ids);
+    static void marshall(ExceptionTracker& exceptionTracker, const MyCardSection& value, Value& out) {
+        CppMarshaller::marshallTypedObject(exceptionTracker, *getRegisteredClass(), out, value.cards, value.ids);
+    }
+
+    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, MyCardSection& out) {
+        CppMarshaller::unmarshallTypedObject(exceptionTracker, *getRegisteredClass(), value, out.cards, out.ids);
     }
 };
 
-RegisteredCppGeneratedClass MyCardSection::registeredClass = CppGeneratedClass::registerSchema(
-    "c 'MyCardSection'{'cards': a<r:'MyCard'>, 'ids': a<l>}",
-    []() -> RegisteredCppGeneratedClass::TypeReferencesVec { return {&MyCard::registeredClass}; });
-
 struct ICalculator : public CppGeneratedInterface {
-    virtual Result<double> add(double left, double right) = 0;
+    virtual double add(double left, double right) = 0;
 
-    static RegisteredCppGeneratedClass registeredClass;
+    ICalculator() : CppGeneratedInterface(getRegisteredClass()) {}
+
+    static RegisteredCppGeneratedClass* getRegisteredClass() {
+        static auto* kRegisteredClass = CppGeneratedClass::registerSchema("c+ 'MyCalculator'{'add': f(d, d): d}");
+        return kRegisteredClass;
+    }
 
     static void marshall(ExceptionTracker& exceptionTracker,
                          CppObjectStore* objectStore,
                          const Ref<ICalculator>& value,
                          Value& out);
+
     static void unmarshall(ExceptionTracker& exceptionTracker,
                            CppObjectStore* objectStore,
                            const Value& value,
                            Ref<ICalculator>& out);
 };
 
-RegisteredCppGeneratedClass ICalculator::registeredClass = CppGeneratedClass::registerSchema(
-    "c+ 'MyCalculator'{'add': f(d, d): d}", []() -> RegisteredCppGeneratedClass::TypeReferencesVec { return {}; });
-
 struct ICalculatorProxy : public ICalculator {
-    Function<Result<double>(double, double)> addFn;
+    Function<double(double, double)> addFn;
 
     ICalculatorProxy() = default;
     ~ICalculatorProxy() override = default;
 
-    Result<double> add(double left, double right) final {
+    double add(double left, double right) final {
         return addFn(left, right);
     }
 
     static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, Ref<ICalculatorProxy>& out) {
         out = makeShared<ICalculatorProxy>();
         auto& self = *out;
-        CppMarshaller::unmarshallTypedObject(exceptionTracker, ICalculator::registeredClass, value, self.addFn);
+        CppMarshaller::unmarshallTypedObject(exceptionTracker, *getRegisteredClass(), value, self.addFn);
     }
 };
 
@@ -117,9 +119,11 @@ void ICalculator::marshall(ExceptionTracker& exceptionTracker,
                            CppObjectStore* objectStore,
                            const Ref<ICalculator>& value,
                            Value& out) {
-    CppMarshaller::marshallProxyObject(exceptionTracker, objectStore, registeredClass, *value, out, [&]() {
-        CppMarshaller::marshallTypedObject(
-            exceptionTracker, registeredClass, out, CppMarshaller::methodToFunction(value, &ICalculator::add));
+    CppMarshaller::marshallProxyObject(exceptionTracker, objectStore, *getRegisteredClass(), *value, out, [&]() {
+        CppMarshaller::marshallTypedObject(exceptionTracker,
+                                           *getRegisteredClass(),
+                                           out,
+                                           CppMarshaller::methodToFunction<ICalculator, &ICalculator::add>(value));
     });
 }
 
@@ -127,21 +131,121 @@ void ICalculator::unmarshall(ExceptionTracker& exceptionTracker,
                              CppObjectStore* objectStore,
                              const Value& value,
                              Ref<ICalculator>& out) {
-    CppMarshaller::unmarshallProxyObject<ICalculatorProxy>(exceptionTracker, objectStore, registeredClass, value, out);
+    CppMarshaller::unmarshallProxyObject<ICalculatorProxy>(
+        exceptionTracker, objectStore, *getRegisteredClass(), value, out);
 }
+
+template<typename T>
+class GenericContainer : public CppGeneratedModel {
+public:
+    GenericContainer() : CppGeneratedModel(getRegisteredClass()) {}
+    explicit GenericContainer(T value) : CppGeneratedModel(getRegisteredClass()), _value(std::move(value)) {}
+    ~GenericContainer() = default;
+
+    const T& getValue() const {
+        return _value;
+    }
+
+    void setValue(T value) {
+        _value = std::move(value);
+    }
+
+    static RegisteredCppGeneratedClass* getRegisteredClass() {
+        static auto* kRegisteredClass = CppGeneratedClass::registerGenericSchema(
+            "c 'GenericContainer'{'value': r:0}", CppGeneratedGenericClass::makeTypeArgumentsCallback<T>());
+        return kRegisteredClass;
+    }
+
+    static void marshall(ExceptionTracker& exceptionTracker, const GenericContainer<T>& value, Value& out) {
+        CppMarshaller::marshallTypedObject(exceptionTracker, *getRegisteredClass(), out, value._value);
+    }
+
+    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, GenericContainer<T>& out) {
+        CppMarshaller::unmarshallTypedObject(exceptionTracker, *getRegisteredClass(), value, out._value);
+    }
+
+private:
+    T _value = {};
+};
+
+class GenericInt : public CppGeneratedClass {
+public:
+    GenericInt() : CppGeneratedClass(getRegisteredClass()) {}
+    ~GenericInt() = default;
+
+    static RegisteredCppGeneratedClass* getRegisteredClass() {
+        static auto* kRegisteredClass =
+            CppGeneratedClass::registerSchema("c 'GenericInt'{'container': g:'[0]'<i>}", []() -> TypeReferencesVec {
+                return {GenericContainer<int32_t>::getRegisteredClass()};
+            });
+        return kRegisteredClass;
+    }
+
+    const GenericContainer<int32_t>& getContainer() const {
+        return _container;
+    }
+
+    void setContainer(GenericContainer<int32_t> container) {
+        _container = std::move(container);
+    }
+
+    static void marshall(ExceptionTracker& exceptionTracker, const GenericInt& value, Value& out) {
+        CppMarshaller::marshallTypedObject(exceptionTracker, *getRegisteredClass(), out, value._container);
+    }
+
+    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, GenericInt& out) {
+        CppMarshaller::unmarshallTypedObject(exceptionTracker, *getRegisteredClass(), value, out._container);
+    }
+
+private:
+    GenericContainer<int32_t> _container;
+};
+
+class GenericObject : public CppGeneratedClass {
+public:
+    GenericObject() : CppGeneratedClass(getRegisteredClass()) {}
+    ~GenericObject() = default;
+
+    static RegisteredCppGeneratedClass* getRegisteredClass() {
+        static auto* kRegisteredClass = CppGeneratedClass::registerSchema(
+            "c 'GenericObject'{'container': g:'[0]'<r:'[1]'>}", []() -> TypeReferencesVec {
+                return {GenericContainer<MyCard>::getRegisteredClass(), MyCard::getRegisteredClass()};
+            });
+        return kRegisteredClass;
+    }
+
+    const GenericContainer<MyCard>& getContainer() const {
+        return _container;
+    }
+
+    void setContainer(GenericContainer<MyCard> container) {
+        _container = std::move(container);
+    }
+
+    static void marshall(ExceptionTracker& exceptionTracker, const GenericObject& value, Value& out) {
+        CppMarshaller::marshallTypedObject(exceptionTracker, *getRegisteredClass(), out, value._container);
+    }
+
+    static void unmarshall(ExceptionTracker& exceptionTracker, const Value& value, GenericObject& out) {
+        CppMarshaller::unmarshallTypedObject(exceptionTracker, *getRegisteredClass(), value, out._container);
+    }
+
+private:
+    GenericContainer<MyCard> _container;
+};
 
 struct MyTestCalculator : public ICalculator {
     MyTestCalculator() = default;
     ~MyTestCalculator() override = default;
 
-    Result<double> add(double left, double right) final {
+    double add(double left, double right) final {
         return left + right;
     }
 };
 
 class TestProxyObject : public ValueTypedProxyObject {
 public:
-    TestProxyObject(const Ref<ValueTypedObject>& typedObject) : ValueTypedProxyObject(typedObject) {}
+    explicit TestProxyObject(const Ref<ValueTypedObject>& typedObject) : ValueTypedProxyObject(typedObject) {}
     ~TestProxyObject() override = default;
 
     std::string_view getType() const final {
@@ -150,12 +254,12 @@ public:
 };
 
 TEST(CppGeneratedClass, canMarshallObject) {
-    auto object = makeShared<MyCard>();
+    MyCard object;
 
-    object->title = STRING_LITERAL("Hello World");
-    object->width = 42;
-    object->height = 100;
-    object->selected = {true};
+    object.title = STRING_LITERAL("Hello World");
+    object.width = 42;
+    object.height = 100;
+    object.selected = {true};
 
     SimpleExceptionTracker exceptionTracker;
     Value out;
@@ -176,7 +280,7 @@ TEST(CppGeneratedClass, canMarshallObject) {
 }
 
 TEST(CppGeneratedClass, canUnmarshallObjectFromMap) {
-    Ref<MyCard> out;
+    MyCard out;
     SimpleExceptionTracker exceptionTracker;
     MyCard::unmarshall(exceptionTracker,
                        Value()
@@ -189,19 +293,17 @@ TEST(CppGeneratedClass, canUnmarshallObjectFromMap) {
                        out);
     ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
 
-    ASSERT_TRUE(out != nullptr);
-
-    ASSERT_EQ(STRING_LITERAL("Hello World"), out->title);
-    ASSERT_EQ(std::make_optional(STRING_LITERAL("Nice")), out->subtitle);
-    ASSERT_EQ(42.0, out->width);
-    ASSERT_EQ(100.0, out->height);
-    ASSERT_EQ(std::make_optional(true), out->selected);
-    ASSERT_EQ(std::nullopt, out->onTap);
+    ASSERT_EQ(STRING_LITERAL("Hello World"), out.title);
+    ASSERT_EQ(std::make_optional(STRING_LITERAL("Nice")), out.subtitle);
+    ASSERT_EQ(42.0, out.width);
+    ASSERT_EQ(100.0, out.height);
+    ASSERT_EQ(std::make_optional(true), out.selected);
+    ASSERT_EQ(std::nullopt, out.onTap);
 }
 
 TEST(CppGeneratedClass, canUnmarshallObjectFromTypedObject) {
     SimpleExceptionTracker exceptionTracker;
-    auto classSchema = MyCard::registeredClass.getResolvedClassSchema(exceptionTracker);
+    auto classSchema = MyCard::getRegisteredClass()->getResolvedClassSchema(exceptionTracker);
     ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
 
     auto typedObject = ValueTypedObject::make(classSchema);
@@ -210,25 +312,23 @@ TEST(CppGeneratedClass, canUnmarshallObjectFromTypedObject) {
     typedObject->setProperty(3, Value(100.0));
     typedObject->setProperty(4, Value(false));
 
-    Ref<MyCard> out;
+    MyCard out;
     MyCard::unmarshall(exceptionTracker, Value(typedObject), out);
     ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
 
-    ASSERT_TRUE(out != nullptr);
-
-    ASSERT_EQ(STRING_LITERAL("Hello World"), out->title);
-    ASSERT_EQ(std::nullopt, out->subtitle);
-    ASSERT_EQ(42.0, out->width);
-    ASSERT_EQ(100.0, out->height);
-    ASSERT_EQ(std::make_optional(false), out->selected);
-    ASSERT_EQ(std::nullopt, out->onTap);
+    ASSERT_EQ(STRING_LITERAL("Hello World"), out.title);
+    ASSERT_EQ(std::nullopt, out.subtitle);
+    ASSERT_EQ(42.0, out.width);
+    ASSERT_EQ(100.0, out.height);
+    ASSERT_EQ(std::make_optional(false), out.selected);
+    ASSERT_EQ(std::nullopt, out.onTap);
 }
 
 TEST(CppGeneratedClass, canMarshallFunction) {
-    auto object = makeShared<MyCard>();
+    MyCard object;
 
     size_t callCount = 0;
-    object->onTap = {[&](StringBox name) -> Result<bool> {
+    object.onTap = {[&](StringBox name) -> bool {
         callCount++;
         if (name == "activate") {
             return true;
@@ -276,7 +376,7 @@ TEST(CppGeneratedClass, canUnmarshallFunction) {
         }
     });
 
-    Ref<MyCard> out;
+    MyCard out;
     SimpleExceptionTracker exceptionTracker;
     MyCard::unmarshall(exceptionTracker,
                        Value()
@@ -287,41 +387,39 @@ TEST(CppGeneratedClass, canUnmarshallFunction) {
                        out);
     ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
 
-    ASSERT_TRUE(out->onTap);
+    ASSERT_TRUE(out.onTap);
 
     ASSERT_EQ(static_cast<size_t>(0), callCount);
 
-    auto result = out->onTap.value()(STRING_LITERAL("great"));
+    auto result = out.onTap.value()(STRING_LITERAL("great"));
 
     ASSERT_EQ(static_cast<size_t>(1), callCount);
-    ASSERT_TRUE(result) << result.description();
-    ASSERT_EQ(false, result.value());
+    ASSERT_EQ(false, result);
 
-    result = out->onTap.value()(STRING_LITERAL("activate"));
+    result = out.onTap.value()(STRING_LITERAL("activate"));
 
     ASSERT_EQ(static_cast<size_t>(2), callCount);
-    ASSERT_TRUE(result) << result.description();
-    ASSERT_EQ(true, result.value());
+    ASSERT_EQ(true, result);
 }
 
 TEST(CppGeneratedClass, canMarshallVector) {
-    auto section = makeShared<MyCardSection>();
+    MyCardSection section;
 
-    auto item1 = makeShared<MyCard>();
-    item1->title = STRING_LITERAL("Item 1");
-    item1->width = 1;
-    item1->height = 1;
+    MyCard item1;
+    item1.title = STRING_LITERAL("Item 1");
+    item1.width = 1;
+    item1.height = 1;
 
-    auto item2 = makeShared<MyCard>();
-    item2->title = STRING_LITERAL("Item 2");
-    item2->width = 2;
-    item2->height = 2;
+    MyCard item2;
+    item2.title = STRING_LITERAL("Item 2");
+    item2.width = 2;
+    item2.height = 2;
 
-    section->cards.emplace_back(item1);
-    section->cards.emplace_back(item2);
+    section.cards.emplace_back(item1);
+    section.cards.emplace_back(item2);
 
-    section->ids.emplace_back(42);
-    section->ids.emplace_back(43);
+    section.ids.emplace_back(42);
+    section.ids.emplace_back(43);
 
     SimpleExceptionTracker exceptionTracker;
     Value out;
@@ -373,29 +471,29 @@ TEST(CppGeneratedClass, canUnmarshallVector) {
             .setMapValue("ids", Value(ValueArray::make({Value(7.0)})));
 
     SimpleExceptionTracker exceptionTracker;
-    Ref<MyCardSection> out;
+    MyCardSection out;
     MyCardSection::unmarshall(exceptionTracker, value, out);
     ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
 
-    ASSERT_EQ(static_cast<size_t>(2), out->cards.size());
+    ASSERT_EQ(static_cast<size_t>(2), out.cards.size());
 
-    auto card1 = out->cards[0];
-    ASSERT_EQ(STRING_LITERAL("Title 1"), card1->title);
-    ASSERT_EQ(std::nullopt, card1->subtitle);
-    ASSERT_EQ(1.0, card1->width);
-    ASSERT_EQ(1.0, card1->height);
-    ASSERT_EQ(std::nullopt, card1->selected);
-    ASSERT_EQ(std::nullopt, card1->onTap);
+    auto card1 = out.cards[0];
+    ASSERT_EQ(STRING_LITERAL("Title 1"), card1.title);
+    ASSERT_EQ(std::nullopt, card1.subtitle);
+    ASSERT_EQ(1.0, card1.width);
+    ASSERT_EQ(1.0, card1.height);
+    ASSERT_EQ(std::nullopt, card1.selected);
+    ASSERT_EQ(std::nullopt, card1.onTap);
 
-    auto card2 = out->cards[1];
-    ASSERT_EQ(STRING_LITERAL("Title 2"), card2->title);
-    ASSERT_EQ(std::make_optional(STRING_LITERAL("A subtitle")), card2->subtitle);
-    ASSERT_EQ(2.0, card2->width);
-    ASSERT_EQ(2.0, card2->height);
-    ASSERT_EQ(std::nullopt, card2->selected);
-    ASSERT_EQ(std::nullopt, card2->onTap);
+    auto card2 = out.cards[1];
+    ASSERT_EQ(STRING_LITERAL("Title 2"), card2.title);
+    ASSERT_EQ(std::make_optional(STRING_LITERAL("A subtitle")), card2.subtitle);
+    ASSERT_EQ(2.0, card2.width);
+    ASSERT_EQ(2.0, card2.height);
+    ASSERT_EQ(std::nullopt, card2.selected);
+    ASSERT_EQ(std::nullopt, card2.onTap);
 
-    ASSERT_EQ(std::vector<int64_t>({7}), out->ids);
+    ASSERT_EQ(std::vector<int64_t>({7}), out.ids);
 }
 
 TEST(CppGeneratedClass, canMarshallInterface) {
@@ -527,7 +625,7 @@ TEST(CppGeneratedClass, canUnmarshallInterface) {
     CppObjectStore objectStore;
 
     SimpleExceptionTracker exceptionTracker;
-    auto schema = ICalculator::registeredClass.getResolvedClassSchema(exceptionTracker);
+    auto schema = ICalculator::getRegisteredClass()->getResolvedClassSchema(exceptionTracker);
     ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
 
     size_t callCount = 0;
@@ -552,9 +650,8 @@ TEST(CppGeneratedClass, canUnmarshallInterface) {
     ASSERT_TRUE(castOrNull<ICalculatorProxy>(out) != nullptr);
 
     auto result = out->add(13, 57);
-    ASSERT_TRUE(result) << result.description();
 
-    ASSERT_EQ(70.0, result.value());
+    ASSERT_EQ(70.0, result);
     ASSERT_EQ(static_cast<size_t>(1), callCount);
 
     // If we marshall the proxy, we should get the testProxyObject back
@@ -565,6 +662,120 @@ TEST(CppGeneratedClass, canUnmarshallInterface) {
 
     ASSERT_TRUE(outValue.isProxyObject());
     ASSERT_EQ(testProxyObject, outValue.getTypedProxyObjectRef());
+}
+
+TEST(CppGeneratedClass, canMarshallGenericInt) {
+    GenericInt object;
+
+    object.setContainer(GenericContainer<int32_t>(42));
+
+    SimpleExceptionTracker exceptionTracker;
+    Value out;
+    GenericInt::marshall(exceptionTracker, object, out);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    auto typedObject = out.getTypedObjectRef();
+    ASSERT_TRUE(typedObject != nullptr);
+
+    auto container =
+        typedObject->getPropertyForName(STRING_LITERAL("container")).checkedTo<Ref<ValueTypedObject>>(exceptionTracker);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    auto value = container->getPropertyForName(STRING_LITERAL("value")).toInt();
+
+    ASSERT_EQ(42, value);
+
+    auto unresolvedGenericSchema = ValueSchemaRegistry::sharedInstance()->getSchemaForTypeKey(ValueSchemaRegistryKey(
+        ValueSchema::typeReference(ValueSchemaTypeReference::named(STRING_LITERAL("GenericContainer")))));
+
+    ASSERT_TRUE(unresolvedGenericSchema.has_value());
+    ASSERT_EQ("class 'GenericContainer'{'value': ref:0}", unresolvedGenericSchema.value().toString());
+
+    auto resolvedGenericSchema = ValueSchemaRegistry::sharedInstance()->getSchemaForTypeKey(
+        ValueSchemaRegistryKey(ValueSchema::genericTypeReference(
+            ValueSchemaTypeReference::named(STRING_LITERAL("GenericContainer")), {ValueSchema::integer()})));
+    ASSERT_TRUE(resolvedGenericSchema.has_value());
+    ASSERT_EQ("class 'GenericContainer'{'value': int}", resolvedGenericSchema.value().toString());
+}
+
+TEST(CppGeneratedClass, canUnmarshallGenericInt) {
+    auto value = Value().setMapValue("container", Value(Value().setMapValue("value", Value(42))));
+
+    SimpleExceptionTracker exceptionTracker;
+    GenericInt out;
+    GenericInt::unmarshall(exceptionTracker, value, out);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    ASSERT_EQ(42, out.getContainer().getValue());
+}
+
+TEST(CppGeneratedClass, canMarshallGenericObject) {
+    GenericObject object;
+
+    MyCard card;
+    card.title = STRING_LITERAL("Hello World");
+    card.width = 42;
+    card.height = 100;
+    card.selected = {true};
+
+    object.setContainer(GenericContainer<MyCard>(std::move(card)));
+
+    SimpleExceptionTracker exceptionTracker;
+    Value out;
+    GenericObject::marshall(exceptionTracker, object, out);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    auto typedObject = out.getTypedObjectRef();
+    ASSERT_TRUE(typedObject != nullptr);
+
+    auto container =
+        typedObject->getPropertyForName(STRING_LITERAL("container")).checkedTo<Ref<ValueTypedObject>>(exceptionTracker);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    auto value =
+        container->getPropertyForName(STRING_LITERAL("value")).checkedTo<Ref<ValueTypedObject>>(exceptionTracker);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    ASSERT_EQ("Hello World", value->getPropertyForName(STRING_LITERAL("title")).toString());
+    ASSERT_EQ(42, value->getPropertyForName(STRING_LITERAL("width")).toInt());
+    ASSERT_EQ(100, value->getPropertyForName(STRING_LITERAL("height")).toInt());
+    ASSERT_EQ(true, value->getPropertyForName(STRING_LITERAL("selected")).toBool());
+
+    auto unresolvedGenericSchema = ValueSchemaRegistry::sharedInstance()->getSchemaForTypeKey(ValueSchemaRegistryKey(
+        ValueSchema::typeReference(ValueSchemaTypeReference::named(STRING_LITERAL("GenericContainer")))));
+
+    ASSERT_TRUE(unresolvedGenericSchema.has_value());
+    ASSERT_EQ("class 'GenericContainer'{'value': ref:0}", unresolvedGenericSchema.value().toString());
+
+    auto resolvedGenericSchema = ValueSchemaRegistry::sharedInstance()->getSchemaForTypeKey(
+        ValueSchemaRegistryKey(ValueSchema::genericTypeReference(
+            ValueSchemaTypeReference::named(STRING_LITERAL("GenericContainer")),
+            {ValueSchema::typeReference(ValueSchemaTypeReference::named(STRING_LITERAL("MyCard")))})));
+    ASSERT_TRUE(resolvedGenericSchema.has_value());
+    ASSERT_EQ("class 'GenericContainer'{'value': link:ref:'MyCard'}", resolvedGenericSchema.value().toString());
+}
+
+TEST(CppGeneratedClass, canUnmarshallGenericObject) {
+    auto value =
+        Value().setMapValue("container",
+                            Value(Value().setMapValue("value",
+                                                      Value(Value()
+                                                                .setMapValue("title", Value(STRING_LITERAL("Goodbye")))
+                                                                .setMapValue("width", Value(24))
+                                                                .setMapValue("height", Value(50))
+                                                                .setMapValue("selected", Value(false))))));
+
+    SimpleExceptionTracker exceptionTracker;
+    GenericObject out;
+    GenericObject::unmarshall(exceptionTracker, value, out);
+    ASSERT_TRUE(exceptionTracker) << exceptionTracker.extractError();
+
+    auto card = out.getContainer().getValue();
+
+    ASSERT_EQ("Goodbye", card.title);
+    ASSERT_EQ(24, card.width);
+    ASSERT_EQ(50, card.height);
+    ASSERT_EQ(false, card.selected);
 }
 
 } // namespace ValdiTest

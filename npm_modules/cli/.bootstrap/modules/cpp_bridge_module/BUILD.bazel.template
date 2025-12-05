@@ -1,11 +1,11 @@
 load("@valdi//bzl/valdi:valdi_module.bzl", "valdi_module")
 
 cc_library(
-    name = "{{MODULE_NAME}}_cpp",
+    name = "{{MODULE_NAME}}_cpp_impl",
     srcs = glob(["cpp/**/*.cpp"]),
     hdrs = glob(["cpp/**/*.hpp"]),
     includes = [],
-    deps = ["@valdi//valdi_core"],
+    deps = [":{{MODULE_NAME}}_cpp"],
     alwayslink = 1,
 )
 
@@ -15,7 +15,7 @@ valdi_module(
         "src/**/*.ts",
         "src/**/*.tsx",
     ]),
-    native_deps = [":{{MODULE_NAME}}_cpp"],
+    native_deps = [":{{MODULE_NAME}}_cpp_impl"],
     visibility = ["//visibility:public"],
     deps = [],
 )

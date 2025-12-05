@@ -14,9 +14,9 @@
 #include "valdi_core/cpp/Threading/TaskQueue.hpp"
 #include "valdi_core/cpp/Utils/ValueUtils.hpp"
 
-#include "valdi/runtime/Exception.hpp"
 #include "valdi_core/cpp/Resources/ValdiPacket.hpp"
 #include "valdi_core/cpp/Utils/ConsoleLogger.hpp"
+#include "valdi_core/cpp/Utils/Exception.hpp"
 
 #include "valdi_core/cpp/Utils/LoggerUtils.hpp"
 #include "valdi_core/cpp/Utils/Mutex.hpp"

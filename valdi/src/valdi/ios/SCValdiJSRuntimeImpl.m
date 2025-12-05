@@ -11,8 +11,8 @@
 
 @implementation SCValdiJSRuntimeImpl {
     __weak id<SCValdiJSRuntimeProvider> _jsRuntimeProvider;
-    SCNValdiJSRuntime *_jsRuntime;
-    SCNValdiJSRuntimeNativeObjectsManager *_nativeObjectsManager;
+    SCNValdiCoreJSRuntime *_jsRuntime;
+    SCNValdiCoreJSRuntimeNativeObjectsManager *_nativeObjectsManager;
 }
 
 - (instancetype)initWithJSRuntimeProvider:(id<SCValdiJSRuntimeProvider>)jsRuntimeProvider
@@ -27,8 +27,8 @@
 }
 
 - (instancetype)initWithJSRuntimeProvider:(id<SCValdiJSRuntimeProvider>)jsRuntimeProvider
-                                jsRuntime:(SCNValdiJSRuntime *)jsRuntime 
-                     nativeObjectsManager:(SCNValdiJSRuntimeNativeObjectsManager *)nativeObjectsManager
+                                jsRuntime:(SCNValdiCoreJSRuntime *)jsRuntime 
+                     nativeObjectsManager:(SCNValdiCoreJSRuntimeNativeObjectsManager *)nativeObjectsManager
 {
     self = [super init];
 
@@ -48,7 +48,7 @@
     }
 }
 
-- (SCNValdiJSRuntime *)jsRuntime
+- (SCNValdiCoreJSRuntime *)jsRuntime
 {
     @synchronized (self) {
         if (!_jsRuntime) {
@@ -68,7 +68,7 @@
 
 - (void)preloadModuleAtPath:(NSString *)path maxDepth:(NSUInteger)maxDepth
 {
-    SCNValdiJSRuntime *jsRuntime = [self jsRuntime];
+    SCNValdiCoreJSRuntime *jsRuntime = [self jsRuntime];
     [jsRuntime preloadModule:path maxDepth:(int32_t)maxDepth];
 }
 
@@ -87,8 +87,8 @@
 
 - (id<SCValdiJSRuntime>)createScopedJSRuntime
 {
-    SCNValdiJSRuntime *jsRuntime = [self jsRuntime];
-    SCNValdiJSRuntimeNativeObjectsManager *nativeObjectsManager = [jsRuntime createNativeObjectsManager];
+    SCNValdiCoreJSRuntime *jsRuntime = [self jsRuntime];
+    SCNValdiCoreJSRuntimeNativeObjectsManager *nativeObjectsManager = [jsRuntime createNativeObjectsManager];
     return [[SCValdiJSRuntimeImpl alloc] initWithJSRuntimeProvider:_jsRuntimeProvider jsRuntime:jsRuntime nativeObjectsManager:nativeObjectsManager];
 }
 

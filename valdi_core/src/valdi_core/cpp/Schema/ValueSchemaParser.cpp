@@ -1,4 +1,4 @@
- //
+//
 //  ValueSchemaParser.cpp
 //  valdi_core-pc
 //
@@ -6,6 +6,7 @@
 //
 
 #include "valdi_core/cpp/Schema/ValueSchemaParser.hpp"
+#include "ValueSchemaParser.hpp"
 #include "valdi_core/cpp/Utils/Format.hpp"
 #include "valdi_core/cpp/Utils/SmallVector.hpp"
 #include "valdi_core/cpp/Utils/StringCache.hpp"
@@ -181,7 +182,7 @@ static std::optional<ValueSchema> parseGenericTypeReferenceSchema(TextParser& pa
         typeReference.value(), typeArguments.value().data(), typeArguments.value().size());
 }
 
-static std::optional<ValueSchema> parseClassSchema(TextParser& parser) {
+static std::optional<ValueSchema> doParseClassSchema(TextParser& parser, bool includeProperties) {
     auto isInterface = parser.tryParse(kStringTypeClassModifierInterface[0]);
 
     parser.tryParseWhitespaces();
@@ -191,6 +192,10 @@ static std::optional<ValueSchema> parseClassSchema(TextParser& parser) {
         return std::nullopt;
     }
     parser.tryParseWhitespaces();
+
+    if (!includeProperties) {
+        return ValueSchema::cls(classNameResult.value(), isInterface, {});
+    }
 
     auto properties =
         parseList<ClassPropertySchema>(parser, '{', '}', [](TextParser& parser) -> std::optional<ClassPropertySchema> {
@@ -218,6 +223,10 @@ static std::optional<ValueSchema> parseClassSchema(TextParser& parser) {
     }
 
     return ValueSchema::cls(classNameResult.value(), isInterface, properties.value().data(), properties.value().size());
+}
+
+static std::optional<ValueSchema> parseClassSchema(TextParser& parser) {
+    return doParseClassSchema(parser, true);
 }
 
 static std::optional<ValueSchema> parseEnumSchema(TextParser& parser) {
@@ -471,6 +480,14 @@ std::optional<ValueSchema> ValueSchemaParser::parse(TextParser& parser) {
     parser.setErrorAtCurrentPosition("Unrecognized token");
 
     return std::nullopt;
+}
+
+std::optional<ValueSchema> ValueSchemaParser::parseClassSchema(TextParser& parser, bool includeProperties) {
+    if (!parser.tryParse(kStringTypeClass[0])) {
+        return std::nullopt;
+    }
+
+    return doParseClassSchema(parser, true);
 }
 
 } // namespace Valdi

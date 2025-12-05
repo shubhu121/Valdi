@@ -10,6 +10,7 @@ import Foundation
 struct ExportedFunction {
     let containingIosType: IOSType?
     let containingAndroidTypeName: String?
+    let containingCppType: CPPType?
 
     let functionName: String
     let parameters: [ValdiModelProperty]
@@ -63,6 +64,12 @@ final class ExportedFunctionGenerator: NativeSourceGenerator {
     }
 
     func generateCppSources(parameters: NativeSourceParameters, cppType: CPPType) throws -> [NativeSource] {
-        return []
+        let cppGenerator = CppFunctionGenerator(cppType: cppType,
+                                                exportedFunction: exportedFunction,
+                                                classMapping: parameters.classMapping,
+                                                sourceFileName: parameters.sourceFileName,
+                                                modulePath: modulePath,
+                                                bundleInfo: parameters.bundleInfo)
+        return try cppGenerator.write()
     }
 }

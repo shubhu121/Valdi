@@ -40,7 +40,7 @@ size_t ErrorStorage::hash() const {
 
 Error::Error() = default;
 Error::Error(StringBox message) : Error(std::move(message), StringBox(), nullptr) {}
-Error::Error(const std::string& message) : Error(StringCache::getGlobal().makeString(message)) {}
+Error::Error(const std::string_view& message) : Error(StringCache::getGlobal().makeString(message)) {}
 Error::Error(const char* message) : Error(STRING_LITERAL(message), StringBox(), nullptr) {}
 Error::Error(StringBox message, StringBox stackTrace, const Error* cause)
     : _storage(makeShared<ErrorStorage>(

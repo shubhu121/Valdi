@@ -19,9 +19,8 @@
 #import "valdi_core/SCValdiScrollView.h"
 #import "valdi_core/SCValdiRootView.h"
 
-#import <SCCValdiTest/SCCValdiTestIntegrationTests.h>
-#import <SCCValdiTestTypes/SCCValdiTestViewModel.h>
-#import <SCCValdiTestTypes/SCCValdiTestContext.h>
+#import <SCCValdiTest/SCCValdiTest.h>
+#import <SCCValdiTestTypes/SCCValdiTestTypes.h>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
@@ -529,7 +528,7 @@
 // clearCaches should only trigger if there were no recent calls to postprocessImage
 //
 // Make multiple calls to rasterizeImage (through postprocessImage) and check:
-// 1) clearCaches was called at least once 
+// 1) clearCaches was called at least once
 // 2) clearCaches call count is less than rasterizeImage call count
 - (void)testClearCIContextCache
 {
@@ -565,7 +564,7 @@
         queueRef->sync(dispatchFn);
         // Simulate a delay between continuous rasterizeImage calls
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }    
+    }
 
     // Wait for arbitrary time period longer than rasterizeImage's clear threshold
     // It is not necessary (nor should it be possible) for enter/leave count to match

@@ -35,7 +35,7 @@
 #import "valdi_core/SCNValdiCoreHTTPRequestManager+Private.h"
 #import "valdi_core/SCNValdiCoreModuleFactoriesProvider+Private.h"
 #import "valdi/SCNValdiKeychain+Private.h"
-#import "valdi/SCNValdiJSRuntime+Private.h"
+#import "valdi_core/SCNValdiCoreJSRuntime+Private.h"
 #import "valdi/ios/SCValdiDefaultHTTPRequestManager.h"
 #import "valdi/ios/SCValdiKeychainStore.h"
 #import "valdi/ios/SCValdiUserDefaultsStore.h"
@@ -681,7 +681,7 @@ static SCValdiCapturedJSStacktrace *toObjCStacktrace(const Valdi::JavaScriptCapt
         SC_ASSERT(runtimeInstance != nullptr);
         auto runtime = runtimeInstance->getJavaScriptRuntime();
         SC_ASSERT(runtime);
-        auto workerRuntime = djinni_generated_client::valdi::JSRuntime::fromCpp(runtime->createWorker());
+        auto workerRuntime = djinni_generated_client::valdi_core::JSRuntime::fromCpp(runtime->createWorker());
         SC_ASSERT(workerRuntime);
         auto newWorker = [[SCValdiJSWorker alloc] initWithWorkerRuntime:workerRuntime];
         SC_ASSERT(newWorker);

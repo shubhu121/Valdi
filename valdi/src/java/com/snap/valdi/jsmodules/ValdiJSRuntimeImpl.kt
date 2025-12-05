@@ -2,8 +2,8 @@ package com.snap.valdi.jsmodules
 
 import com.snap.valdi.callable.ValdiFunction
 import com.snap.valdi.utils.ValdiMarshaller
-import com.snapchat.client.valdi.JSRuntime
-import com.snapchat.client.valdi.JSRuntimeNativeObjectsManager
+import com.snapchat.client.valdi_core.JSRuntime
+import com.snapchat.client.valdi_core.JSRuntimeNativeObjectsManager
 
 import java.lang.ref.WeakReference
 

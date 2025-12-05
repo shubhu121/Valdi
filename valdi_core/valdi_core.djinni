@@ -131,3 +131,26 @@ JavaScriptEngineType  = enum {
   V8;
   Hermes;
 }
+
+JSRuntimeNativeObjectsManager = interface +c {
+  getReachableObjectsDescription(): Value;
+}
+
+JSRuntime = interface +c {
+
+  # Push the module unmarshalled using the schema in the given marshaller handle
+  # into the marshaller.
+  pushModuleToMarshaller(nativeObjectsManager: JSRuntimeNativeObjectsManager, path: InternedString, marshallerHandle: i64): i32;
+
+  addModuleUnloadObserver(path: InternedString, observer: Value);
+
+  preloadModule(path: InternedString, maxDepth: i32);
+
+  createNativeObjectsManager(): JSRuntimeNativeObjectsManager;
+
+  destroyNativeObjectsManager(nativeObjectsManager: JSRuntimeNativeObjectsManager);
+
+  createWorker(): JSRuntime;
+
+  runOnJsThread(runnable: Value);
+}

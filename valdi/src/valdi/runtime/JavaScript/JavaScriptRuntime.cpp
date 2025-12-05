@@ -13,7 +13,6 @@
 
 #include "utils/platform/BuildOptions.hpp"
 #include "utils/time/StopWatch.hpp"
-#include "valdi/JSRuntimeNativeObjectsManager.hpp"
 #include "valdi/runtime/Attributes/AttributeIds.hpp"
 #include "valdi/runtime/JavaScript/JSFunctionWithCallable.hpp"
 #include "valdi/runtime/JavaScript/JSFunctionWithMethod.hpp"
@@ -30,6 +29,7 @@
 #include "valdi/runtime/Resources/DirectionalAsset.hpp"
 #include "valdi/runtime/Resources/PlatformSpecificAsset.hpp"
 #include "valdi/runtime/ValdiRuntimeTweaks.hpp"
+#include "valdi_core/JSRuntimeNativeObjectsManager.hpp"
 #include "valdi_core/cpp/Constants.hpp"
 #include "valdi_core/cpp/Resources/LoadedAsset.hpp"
 #include "valdi_core/cpp/Resources/ResourceId.hpp"
@@ -176,7 +176,7 @@ private:
     JSValue _callback;
 };
 
-class JSRuntimeNativeObjectsManagerImpl : public snap::valdi::JSRuntimeNativeObjectsManager {
+class JSRuntimeNativeObjectsManagerImpl : public snap::valdi_core::JSRuntimeNativeObjectsManager {
 public:
     JSRuntimeNativeObjectsManagerImpl(ContextManager& contextManager, Ref<Context>&& context)
         : _contextManager(contextManager), _context(context) {}
@@ -3064,7 +3064,7 @@ Result<Void> JavaScriptRuntime::evalModuleSync(const StringBox& path, bool reeva
 }
 
 int32_t JavaScriptRuntime::pushModuleToMarshaller(
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     const Valdi::StringBox& path,
     int64_t marshallerHandle) {
     auto marshaller = reinterpret_cast<Marshaller*>(marshallerHandle);
@@ -3072,7 +3072,7 @@ int32_t JavaScriptRuntime::pushModuleToMarshaller(
 }
 
 int32_t JavaScriptRuntime::pushModuleToMarshaller(
-    const /*not-null*/ std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const /*not-null*/ std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     const Valdi::StringBox& path,
     Marshaller& marshaller) {
     int32_t retValue = 0;
@@ -3137,14 +3137,14 @@ void JavaScriptRuntime::preloadModule(const StringBox& path, int32_t maxDepth) {
     });
 }
 
-std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager> JavaScriptRuntime::createNativeObjectsManager() {
+std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager> JavaScriptRuntime::createNativeObjectsManager() {
     auto context = _contextManager.createContext(nullptr, nullptr, /* deferRender */ true);
 
     return makeShared<JSRuntimeNativeObjectsManagerImpl>(_contextManager, std::move(context));
 }
 
 void JavaScriptRuntime::destroyNativeObjectsManager(
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager) {
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager) {
     auto* impl = dynamic_cast<JSRuntimeNativeObjectsManagerImpl*>(nativeObjectsManager.get());
     dispatchOnJsThread(
         impl->getContext(), JavaScriptTaskScheduleTypeDefault, 0, [nativeObjectsManager](auto& /*jsEntry*/) {
@@ -3153,7 +3153,7 @@ void JavaScriptRuntime::destroyNativeObjectsManager(
         });
 }
 
-std::shared_ptr<snap::valdi::JSRuntime> JavaScriptRuntime::createWorker() {
+std::shared_ptr<snap::valdi_core::JSRuntime> JavaScriptRuntime::createWorker() {
     auto workerRuntime = makeShared<JavaScriptRuntime>(_javaScriptBridge,
                                                        _resourceManager,
                                                        _contextManager,
@@ -3173,7 +3173,7 @@ std::shared_ptr<snap::valdi::JSRuntime> JavaScriptRuntime::createWorker() {
         workerRuntime->registerTypeConverter(typeConverter.typeName, typeConverter.functionPath);
     }
     _jsWorkers.emplace_back(weakRef(workerRuntime.get()));
-    return std::dynamic_pointer_cast<snap::valdi::JSRuntime>(*workerRuntime->getInnerSharedPtr());
+    return std::dynamic_pointer_cast<snap::valdi_core::JSRuntime>(*workerRuntime->getInnerSharedPtr());
 }
 
 void JavaScriptRuntime::runOnJsThread(const Value& runnable) {

@@ -750,6 +750,7 @@ valdi_test(
         "//valdi/testdata/resources/modules/local:local_native",
         "//valdi/testdata/resources/modules/remote:remote_native",
         "//valdi/testdata/resources/modules/remote_assets:remote_assets_native",
+        "//valdi/testdata/resources/modules/test:test_cpp",
         "//valdi/testdata/resources/modules/test:test_native",
         "//valdi/testdata/resources/modules/test2:test2_native",
     ],

@@ -8,8 +8,7 @@
 
 #pragma once
 
-#include "valdi_core/cpp/Utils/StringBox.hpp"
-#include <string>
+#include "valdi_core/cpp/Utils/Error.hpp"
 
 namespace Valdi {
 
@@ -18,15 +17,16 @@ public:
     explicit Exception(std::string_view message);
     explicit Exception(StringBox message);
     explicit Exception(const char* message);
+    explicit Exception(Error error);
 
     const char* what() const noexcept override;
 
     const StringBox& getMessage() const;
 
-    static StringBox getMessageForException(const std::exception& exc);
+    const Error& getError() const;
 
 private:
-    StringBox _message;
+    Error _error;
 };
 
 } // namespace Valdi

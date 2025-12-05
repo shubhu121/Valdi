@@ -93,7 +93,7 @@ private class KotlinSchemaWriterListener: SchemaWriterListener {
         self.emittedTypeReferences = emittedTypeReferences
     }
 
-    func getClassName(nodeMapping: ValdiNodeClassMapping) throws -> String? {
+    func getClassName(nodeMapping: ValdiNodeClassMapping, typeArguments: [ValdiModelPropertyType]?) throws -> String? {
         guard let androidClassName = nodeMapping.androidClassName else {
             throw CompilerError("No Android type declared")
         }

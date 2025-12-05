@@ -629,7 +629,7 @@ struct CompilationItem {
 
             let assetsURL: URL = outputURL.appendingPathComponent("assets", isDirectory: true)
 
-            let srcURL = outputURL.appendingPathComponent("src", isDirectory: true).appendingPathComponent(moduleName, isDirectory: true)
+            let srcURL = outputURL.appendingPathComponent("src", isDirectory: true)
             let resourcesURL = outputURL.appendingPathComponent("res", isDirectory: true)
 
             return OutDirectories(

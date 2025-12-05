@@ -6,7 +6,6 @@
 #include "valdi/runtime/Context/IViewNodesAssetTracker.hpp"
 #include "valdi/runtime/Context/ViewNodeAssetHandler.hpp"
 #include "valdi/runtime/Context/ViewNodeScrollState.hpp"
-#include "valdi/runtime/Exception.hpp"
 #include "valdi/runtime/Interfaces/ITweakValueProvider.hpp"
 #include "valdi/runtime/JavaScript/JavaScriptANRDetector.hpp"
 #include "valdi/runtime/JavaScript/JavaScriptUtils.hpp"
@@ -22,6 +21,7 @@
 #include "valdi_core/cpp/JavaScript/ModuleFactoryRegistry.hpp"
 #include "valdi_core/cpp/Schema/ValueSchemaRegistry.hpp"
 #include "valdi_core/cpp/Schema/ValueSchemaTypeResolver.hpp"
+#include "valdi_core/cpp/Utils/Exception.hpp"
 #include "valdi_core/cpp/Utils/ValueArrayBuilder.hpp"
 
 #include "valdi/jsbridge/JavaScriptBridge.hpp"
@@ -50,6 +50,8 @@
 #include "valdi_test_utils.hpp"
 #include "gtest/gtest.h"
 #include <yoga/YGNode.h>
+
+#include "valdi_modules/test/test.hpp"
 
 #include <atomic>
 #include <condition_variable>
@@ -147,7 +149,7 @@ protected:
 
 static Result<Value> getJsModuleWithSchema(
     Runtime* runtime,
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     ValueSchemaRegistry* registry,
     std::string_view moduleName,
     const ValueSchema& schema) {
@@ -177,7 +179,7 @@ static Result<Value> getJsModuleWithSchema(
 
 static Result<Value> getJsModulePropertyWithSchema(
     Runtime* runtime,
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     ValueSchemaRegistry* registry,
     std::string_view moduleName,
     std::string_view propertyName,
@@ -209,7 +211,7 @@ static Result<Value> getJsModulePropertyWithSchema(Runtime* runtime,
 
 static Result<Value> getJsModulePropertyAsValue(
     Runtime* runtime,
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     std::string_view moduleName,
     std::string_view propertyName) {
     return getJsModulePropertyWithSchema(runtime, nativeObjectsManager, nullptr, moduleName, propertyName, "u");
@@ -217,7 +219,7 @@ static Result<Value> getJsModulePropertyAsValue(
 
 static Result<Ref<ValueFunction>> getJsModulePropertyAsUntypedFunction(
     Runtime* runtime,
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     std::string_view moduleName,
     std::string_view propertyName) {
     auto value = getJsModulePropertyAsValue(runtime, nativeObjectsManager, moduleName, propertyName);
@@ -232,7 +234,7 @@ static Result<Ref<ValueFunction>> getJsModulePropertyAsUntypedFunction(
 
 static Result<Value> callFunctionSync(
     RuntimeWrapper& wrapper,
-    const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+    const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
     std::string_view moduleName,
     std::string_view functionName,
     std::vector<Value> params) {
@@ -6106,6 +6108,35 @@ TEST_P(RuntimeFixture, supportsLoadStrategy) {
     ASSERT_TRUE(wrapper.runtime->getResourceManager().isBundleLoaded(STRING_LITERAL("test2")));
 }
 
+TEST_P(RuntimeFixture, supportsNativeModule) {
+    auto result = callFunctionSync(wrapper, "test/src/NativeModule", "compute", {});
+
+    ASSERT_TRUE(result) << result.description();
+
+    ASSERT_TRUE(result.value().isNumber());
+    ASSERT_EQ(50.0, result.value().toDouble());
+}
+
+TEST_P(RuntimeFixture, supportsExportedFunction) {
+    auto result = snap::valdi_modules::test::MakeCalculator::resolve(*wrapper.runtime->getJavaScriptRuntime(), nullptr);
+    ASSERT_TRUE(result) << result.description();
+
+    auto calculator = result.value()();
+
+    calculator->add(10);
+
+    ASSERT_EQ(10.0, calculator->total());
+
+    calculator->mul(3.0);
+
+    ASSERT_EQ(30.0, calculator->total());
+
+    ASSERT_EQ(StringBox::fromCString("30.0"),
+              calculator->toString(snap::valdi_modules::test::CalculatorToStringFormat::DECIMAL));
+    ASSERT_EQ(StringBox::fromCString("30"),
+              calculator->toString(snap::valdi_modules::test::CalculatorToStringFormat::INTEGER));
+}
+
 TEST_P(RuntimeFixture, supportsLongObject) {
     auto parseResult =
         callFunctionSync(wrapper, "test/src/LongTest", "parse", {Value(STRING_LITERAL("3670116110564327421"))});
@@ -8563,9 +8594,66 @@ public:
     }
 };
 
-RegisterModuleFactory registerTestModule([]() { return std::make_shared<TestModuleFactory>(); });
+class NativeCalculator : public snap::valdi_modules::test::ICalculator {
+public:
+    NativeCalculator() = default;
+    ~NativeCalculator() override = default;
 
-RegisterModuleFactory registerTestModule2([]() { return std::make_shared<TestModule2Factory>(); });
+    void add(double value) final {
+        _value += value;
+    }
+
+    void sub(double value) final {
+        _value -= value;
+    }
+
+    void mul(double value) final {
+        _value *= value;
+    }
+
+    void div(double value) final {
+        _value /= value;
+    }
+
+    double total() final {
+        return _value;
+    }
+
+    Valdi::StringBox toString(snap::valdi_modules::test::CalculatorToStringFormat format) final {
+        switch (format) {
+            case snap::valdi_modules::test::CalculatorToStringFormat::DECIMAL:
+                return Valdi::StringBox::fromString(std::to_string(_value));
+            case snap::valdi_modules::test::CalculatorToStringFormat::INTEGER:
+                return Valdi::StringBox::fromString(std::to_string(static_cast<int64_t>(_value)));
+        }
+    }
+
+private:
+    double _value = 0;
+};
+
+class NativeCalculatorModuleFactoryImpl : public snap::valdi_modules::test::NativeCalculatorModuleFactory {
+public:
+    NativeCalculatorModuleFactoryImpl() = default;
+
+    Ref<snap::valdi_modules::test::NativeCalculatorModule> onLoadModule() final {
+        class NativeCalculatorModuleImpl : public snap::valdi_modules::test::NativeCalculatorModule {
+        public:
+            NativeCalculatorModuleImpl() = default;
+            ~NativeCalculatorModuleImpl() override = default;
+
+            Ref<snap::valdi_modules::test::ICalculator> makeCalculator() final {
+                return makeShared<NativeCalculator>();
+            }
+        };
+
+        return makeShared<NativeCalculatorModuleImpl>();
+    }
+};
+auto registerNativeCalculatorModule = RegisterModuleFactory::registerTyped<NativeCalculatorModuleFactoryImpl>();
+
+auto registerTestModule = RegisterModuleFactory::registerTyped<TestModuleFactory>();
+auto registerTestModule2 = RegisterModuleFactory::registerTyped<TestModule2Factory>();
 
 TEST_P(RuntimeFixture, supportsModuleRegisteredThroughModuleRegistry) {
     std::string evalBody = "return global.require(\"my_module/src/TestModule\").CONSTANT * 2;";

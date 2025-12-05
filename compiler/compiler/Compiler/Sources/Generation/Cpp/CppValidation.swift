@@ -107,6 +107,8 @@ enum CppValidation {
         "wchar_t",
         "while",
         "xor",
-        "xor_eq"
+        "xor_eq",
+        "null",
+        "NULL"
     ]
 }

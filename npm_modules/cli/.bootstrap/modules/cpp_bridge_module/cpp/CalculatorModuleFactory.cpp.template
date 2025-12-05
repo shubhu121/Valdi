@@ -1,29 +1,28 @@
-#include "valdi_core/cpp/JavaScript/ModuleFactoryRegistry.hpp"
-#include "valdi_core/cpp/Utils/ValueFunctionWithCallable.hpp"
+#include "valdi_modules/{{MODULE_NAME}}/{{MODULE_NAME}}.hpp"
 
-namespace snap::valdi::{{MODULE_NAME}} {
+using namespace Valdi;
 
-class CalculatorModuleFactory : public valdi_core::ModuleFactory {
+namespace snap::valdi_modules::{{MODULE_NAME}} {
+
+class CalculatorModuleFactoryImpl : public CalculatorModuleFactory {
 public:
-    CalculatorModuleFactory() = default;
-    ~CalculatorModuleFactory() override = default;
+    CalculatorModuleFactoryImpl() = default;
 
-    Valdi::StringBox getModulePath() final {
-        return Valdi::StringBox::fromCString("{{MODULE_NAME}}/src/Calculator");
-    }
+    Ref<CalculatorModule> onLoadModule() final {
+        class CalculatorModuleImpl : public CalculatorModule {
+        public:
+            CalculatorModuleImpl() = default;
+            ~CalculatorModuleImpl() override = default;
 
-    Valdi::Value loadModule() final {
-        return Valdi::Value().setMapValue("multiply",
-                                          Valdi::Value(Valdi::makeShared<Valdi::ValueFunctionWithCallable>(
-                                              [](const Valdi::ValueFunctionCallContext& callContext) -> Valdi::Value {
-                                                  auto left = callContext.getParameterAsDouble(0);
-                                                  auto right = callContext.getParameterAsDouble(1);
+            double multiply(double left, double right) final {
+                return left * right;
+            }
+        };
 
-                                                  return Valdi::Value(left * right);
-                                              })));
+        return makeShared<CalculatorModuleImpl>();
     }
 };
 
-Valdi::RegisterModuleFactory kRegisterCalculatorModuleFactory([]() { return std::make_shared<CalculatorModuleFactory>(); });
+static auto registerCalculatorModuleFactory = RegisterModuleFactory::registerTyped<CalculatorModuleFactoryImpl>();
 
-} // namespace snap::valdi::{{MODULE_NAME}}
+} // namespace snap::valdi_modules::{{MODULE_NAME}}

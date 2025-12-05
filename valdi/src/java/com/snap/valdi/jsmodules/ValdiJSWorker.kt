@@ -2,7 +2,7 @@ package com.snap.valdi.jsmodules
 
 import com.snap.valdi.callable.ValdiFunction
 import com.snap.valdi.utils.ValdiMarshaller
-import com.snapchat.client.valdi.JSRuntime
+import com.snapchat.client.valdi_core.JSRuntime
 
 // User code should not create workers directly, instead, use ValdiRuntimeManager.getWorker() to acquire a worker
 class ValdiJSWorker(val jsRuntime: JSRuntime) : ValdiJSRuntime {

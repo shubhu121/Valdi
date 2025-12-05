@@ -83,6 +83,8 @@ ValdiModuleInfo = provider(
         "ios_release_api_generated_srcs": "A tree artifact containing all the generated objective-c/swift code (for the API-only module)",
         "ios_debug_nativesrc": "generated .c file containing all the generated C code",
         "ios_release_nativesrc": "generated .c file containing all the generated C code",
+        "cpp_srcs": "generated .cpp files containing all the generated C++ code",
+        "cpp_hdrs": "generated .hpp files containing all the generated C++ header files",
         "ios_debug_sourcemap_archive": "A tree artifact containing archive of source and source maps",
         "ios_release_sourcemap_archive": "A tree artifact containing archive of source and source maps",
         "ios_sql_assets": "generated files for .sql files for this Valdi module",
@@ -576,6 +578,9 @@ def _get_files_output_paths(ctx, module_name, module_directory, localization_mod
         outputs = _append_debug_and_maybe_release(outputs, ios_output_target, _get_ios_generated_src(ctx.attr.ios_module_name))
         outputs = _append_debug_and_maybe_release(outputs, ios_output_target, _get_ios_generated_api_src(ctx.attr.ios_module_name))
 
+        # C++ always outputs to release configuration
+        outputs += _get_cpp_generated_src(module_name)
+
     return outputs
 
 def _get_directories_output_paths(ctx):
@@ -593,6 +598,10 @@ def _get_directories_output_paths(ctx):
 
         outputs = _append_debug_and_maybe_release(outputs, ctx.attr.ios_output_target, _get_ios_generated_src_dir(ios_module_name))
         outputs = _append_debug_and_maybe_release(outputs, ctx.attr.ios_output_target, _get_ios_generated_api_src_dir(ios_module_name))
+
+        # C++ generated sources when single_file_codegen is disabled
+        # C++ always outputs to release configuration
+        outputs.append(_get_cpp_generated_src_dir())
 
     # Ios source maps.
     outputs = _append_debug_and_maybe_release(outputs, ctx.attr.ios_output_target, _get_ios_source_map_dir())
@@ -819,6 +828,23 @@ def _get_ios_generated_api_src(ios_module_name):
     ]
 
     return [debug_srcs, release_srcs]
+
+def _get_cpp_generated_src_dir():
+    """Get C++ generated source directory for multi-file codegen mode.
+
+    C++ codegen always outputs to release configuration.
+    """
+    return base_relative_dir("cpp", "release", "src")
+
+def _get_cpp_generated_src(module_name):
+    """Get C++ generated source file paths for single_file_codegen mode.
+
+    C++ codegen always outputs to release configuration.
+    """
+    return [
+        base_relative_dir("cpp", "release", "src/valdi_modules/{}/{}.hpp".format(module_name, module_name)),
+        base_relative_dir("cpp", "release", "src/valdi_modules/{}/{}.cpp".format(module_name, module_name)),
+    ]
 
 def _get_ios_source_map_dir():
     return [
@@ -1083,6 +1109,13 @@ def _prepare_arguments(args, log_level, localization_mode, js_bytecode_format, c
     args.add("--config-value", "ios.output.metadata_path=metadata")
     args.add("--config-value", "ios.output.build_file_enabled=false")
 
+    # C++
+    args.add("--config-value", "cpp.codegen_enabled=true")
+    args.add("--config-value", "cpp.output.base={}".format(paths.join("$PWD", base_output_dir, "cpp")))
+    args.add("--config-value", "cpp.output.debug_path=debug")
+    args.add("--config-value", "cpp.output.release_path=release")
+    args.add("--config-value", "cpp.output.metadata_path=.")
+
     # Web
     if enable_web:
         args.add("--config-value", "web.output.base={}".format(paths.join("$PWD", base_output_dir, "web")))
@@ -1290,6 +1323,10 @@ def _create_valdi_module_info(ctx, module_name, module_yaml, module_definition, 
         ios_sql_assets = _extract_ios_sql_assets(ios_module_name, outputs),
         ios_dependency_data = _extract_ios_dependency_data(outputs),
 
+        # C++ outputs (always in release configuration)
+        cpp_srcs = _extract_cpp_generated_srcs(outputs, module_name, single_file_codegen),
+        cpp_hdrs = _extract_cpp_generated_hdrs(outputs, module_name, single_file_codegen),
+
         # web outputs
         protodecl_srcs = ctx.files.protodecl_srcs,
         web_debug_sources = _extract_js_files(module_name, "debug", outputs),
@@ -1479,6 +1516,49 @@ def _extract_ios_api_generated_srcs(output_target, outputs, ios_module_name, sin
             found = [f for f in outputs if f.is_directory and f.path.endswith(debug_api_src_dir)]
         else:
             found = [f for f in outputs if f.is_directory and f.path.endswith(release_api_src_dir)]
+        return found[0] if found else None
+
+def _extract_cpp_generated_srcs(outputs, module_name, single_file_codegen):
+    """Extract C++ generated source files (.cpp) from outputs.
+
+    C++ codegen always outputs to release configuration.
+    """
+    if single_file_codegen:
+        srcs = _get_cpp_generated_src(module_name)
+
+        # Filter for .cpp files
+        src_to_check = [f for f in srcs if f.endswith(".cpp")]
+
+        if len(src_to_check) != 1:
+            fail("Expecting to find exactly 1 .cpp file. Found {}".format(srcs))
+
+        found = [output for output in outputs if output.path.endswith(src_to_check[0])]
+        return found[0] if found else None
+    else:
+        src_dir = _get_cpp_generated_src_dir()
+        found = [f for f in outputs if f.is_directory and f.path.endswith(src_dir)]
+        return found[0] if found else None
+
+def _extract_cpp_generated_hdrs(outputs, module_name, single_file_codegen):
+    """Extract C++ generated header files (.hpp) from outputs.
+
+    C++ codegen always outputs to release configuration.
+    """
+    if single_file_codegen:
+        srcs = _get_cpp_generated_src(module_name)
+
+        # Filter for .hpp files
+        src_to_check = [f for f in srcs if f.endswith(".hpp")]
+
+        if len(src_to_check) != 1:
+            fail("Expecting to find exactly 1 .hpp file. Found {}".format(srcs))
+
+        found = [output for output in outputs if output.path.endswith(src_to_check[0])]
+        return found[0] if found else None
+    else:
+        # For multi-file codegen, headers are in the same directory as sources
+        src_dir = _get_cpp_generated_src_dir()
+        found = [f for f in outputs if f.is_directory and f.path.endswith(src_dir)]
         return found[0] if found else None
 
 def _extract_android_debug_sourcemaps(module_name, outputs):

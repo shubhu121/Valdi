@@ -28,9 +28,9 @@
 
 #include "utils/platform/BuildOptions.hpp"
 #include "utils/time/StopWatch.hpp"
-#include "valdi/NativeJSRuntime.hpp"
 #include "valdi_core/NativeAsset.hpp"
 #include "valdi_core/NativeHTTPRequestManager.hpp"
+#include "valdi_core/NativeJSRuntime.hpp"
 #include "valdi_core/NativeModuleFactoriesProvider.hpp"
 #include "valdi_core/NativeModuleFactory.hpp"
 #include "valdi_core/cpp/Utils/DiskUtils.hpp"
@@ -1791,8 +1791,8 @@ jobject ValdiAndroid::NativeBridge::getJSRuntime( // NOLINT
         return nullptr;
     }
 
-    return djinni_generated_client::valdi::NativeJSRuntime::fromCpp(env,
-                                                                    Valdi::strongRef(runtime->getJavaScriptRuntime()))
+    return djinni_generated_client::valdi_core::NativeJSRuntime::fromCpp(
+               env, Valdi::strongRef(runtime->getJavaScriptRuntime()))
         .release();
 }
 

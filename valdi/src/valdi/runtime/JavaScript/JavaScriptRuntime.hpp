@@ -30,8 +30,8 @@
 
 #include "valdi_core/cpp/Resources/ResourceId.hpp"
 
-#include "valdi/JSRuntime.hpp"
 #include "valdi_core/AnimationType.hpp"
+#include "valdi_core/JSRuntime.hpp"
 
 #include "valdi/runtime/JavaScript/JSPropertyNameIndex.hpp"
 #include "valdi/runtime/JavaScript/JavaScriptComponentContextHandler.hpp"
@@ -158,7 +158,7 @@ struct ModuleMemoryConsumptionInfo {
  */
 class JavaScriptRuntime : public JavaScriptTaskScheduler,
                           public IJavaScriptContextListener,
-                          public snap::valdi::JSRuntime,
+                          public snap::valdi_core::JSRuntime,
                           public JavaScriptComponentContextHandlerListener {
 public:
     JavaScriptRuntime(IJavaScriptBridge& jsBridge,
@@ -238,29 +238,29 @@ public:
     bool isJsModuleLoaded(const ResourceId& resourceId);
 
     Ref<JavaScriptModuleContainer> getModule(
-        const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+        const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
         const Valdi::StringBox& path);
 
     void preloadModule(const StringBox& path, int32_t maxDepth) override;
 
     int32_t pushModuleToMarshaller(
-        const /*not-null*/ std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+        const /*not-null*/ std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
         const Valdi::StringBox& path,
         int64_t marshallerHandle) override;
 
     int32_t pushModuleToMarshaller(
-        const /*not-null*/ std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
+        const /*not-null*/ std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager,
         const Valdi::StringBox& path,
         Marshaller& marshaller);
 
     void addModuleUnloadObserver(const Valdi::StringBox& path, const Valdi::Value& observer) override;
 
-    std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager> createNativeObjectsManager() override;
+    std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager> createNativeObjectsManager() override;
 
     void destroyNativeObjectsManager(
-        const std::shared_ptr<snap::valdi::JSRuntimeNativeObjectsManager>& nativeObjectsManager) override;
+        const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager) override;
 
-    std::shared_ptr<snap::valdi::JSRuntime> createWorker() override;
+    std::shared_ptr<snap::valdi_core::JSRuntime> createWorker() override;
 
     void runOnJsThread(const Value& runnable) override;
 

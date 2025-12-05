@@ -428,12 +428,13 @@ final class TypeScriptNativeTypeExporter {
             let parameters = try dumpedFunction.type.parameters.map { try self.parsePropertyOrParameter(propertyLikeDeclaration: $0, references: self.commentedFile.references) }
             let returnType = try self.resolveType(type: dumpedFunction.type.returnValue, references: self.commentedFile.references)
             let exportedFunction = ExportedFunction(containingIosType: self.iosType,
-                                                     containingAndroidTypeName: self.androidClass,
-                                                     functionName: dumpedFunction.name,
-                                                     parameters: parameters,
-                                                     returnType: returnType,
-                                                     comments: comments)
-             let classMapping = ValdiClassMapping()
+                                                    containingAndroidTypeName: self.androidClass,
+                                                    containingCppType: self.cppType,
+                                                    functionName: dumpedFunction.name,
+                                                    parameters: parameters,
+                                                    returnType: returnType,
+                                                    comments: comments)
+            let classMapping = ValdiClassMapping()
             return Promise(data: (exportedFunction, classMapping))
         } catch {
             return Promise(error: error)

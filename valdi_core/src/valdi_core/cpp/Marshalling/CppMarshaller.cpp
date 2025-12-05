@@ -5,10 +5,13 @@
 //  Created by Simon Corsin on 4/11/23.
 //
 
-#include "valdi_core/cpp/Utils/CppMarshaller.hpp"
+#include "valdi_core/cpp/Marshalling/CppMarshaller.hpp"
+#include "valdi_core/cpp/Marshalling/RegisteredCppGeneratedClass.hpp"
 #include "valdi_core/cpp/Schema/ValueSchema.hpp"
+#include "valdi_core/cpp/Utils/Bytes.hpp"
 #include "valdi_core/cpp/Utils/PlatformObjectAttachments.hpp"
 #include "valdi_core/cpp/Utils/ValueMap.hpp"
+#include "valdi_core/cpp/Utils/ValueTypedArray.hpp"
 #include "valdi_core/cpp/Utils/ValueTypedProxyObject.hpp"
 
 namespace Valdi {
@@ -47,7 +50,6 @@ CppProxyMarshallerBase::~CppProxyMarshallerBase() = default;
 
 CppObjectStore* CppProxyMarshallerBase::getObjectStore() const {
     return _objectStore;
-    ;
 }
 
 CppProxyMarshaller::CppProxyMarshaller(CppObjectStore* objectStore,
@@ -97,6 +99,29 @@ public:
 private:
     Ref<CppGeneratedInterface> _ref;
 };
+
+void CppMarshaller::marshall(ExceptionTracker& exceptionTracker, const BytesView& value, Value& out) {
+    auto existingTypedArray = castOrNull<ValueTypedArray>(value.getSource());
+    if (existingTypedArray != nullptr && existingTypedArray->getBuffer().isStrictlyIdenticalTo(value)) {
+        out = Value(existingTypedArray);
+        return;
+    }
+
+    out = Value(makeShared<ValueTypedArray>(TypedArrayType::Uint8Array, value));
+}
+
+void CppMarshaller::unmarshall(ExceptionTracker& exceptionTracker, const Value& value, BytesView& out) {
+    auto typedArray = value.checkedTo<Ref<ValueTypedArray>>(exceptionTracker);
+    if (!exceptionTracker) {
+        return;
+    }
+
+    out = typedArray->getBuffer();
+}
+
+void CppMarshaller::unmarshall(ExceptionTracker& exceptionTracker, const Value& value, Value& out) {
+    out = value;
+}
 
 Value* CppMarshaller::marshallTypedObjectPrologue(ExceptionTracker& exceptionTracker,
                                                   RegisteredCppGeneratedClass& registeredClass,
@@ -149,7 +174,7 @@ CppProxyMarshaller CppMarshaller::marshallProxyObjectPrologue(CppObjectStore* ob
                                                               Value& out) {
     auto lock = objectStore->lock();
 
-    auto objectAttachments = value.getObjectAttachments();
+    const auto& objectAttachments = value.getObjectAttachments();
     auto proxy = objectAttachments->getProxyForSource(nullptr);
     if (proxy != nullptr) {
         out = Value(proxy);
@@ -196,9 +221,13 @@ CppProxyUnmarshaller CppMarshaller::unmarshallProxyObjectPrologue(ExceptionTrack
 void CppMarshaller::unmarshallProxyObjectEpilogue(CppProxyUnmarshaller& unmarshaller,
                                                   CppGeneratedInterface& generatedInterface) {
     const auto& proxyObject = unmarshaller.getProxyObject();
-    auto objectAttachments = generatedInterface.getObjectAttachments();
+    const auto& objectAttachments = generatedInterface.getObjectAttachments();
     objectAttachments->setProxyForSource(nullptr, proxyObject, true);
     unmarshaller.getObjectStore()->setObjectProxyForId(proxyObject->getId(), strongSmallRef(&generatedInterface));
+}
+
+void CppMarshaller::throwUnimplementedMethod() {
+    throw Exception("Unimplemented method");
 }
 
 } // namespace Valdi

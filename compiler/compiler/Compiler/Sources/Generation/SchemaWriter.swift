@@ -8,7 +8,7 @@
 import Foundation
 
 protocol SchemaWriterListener: AnyObject {
-    func getClassName(nodeMapping: ValdiNodeClassMapping) throws -> String?
+    func getClassName(nodeMapping: ValdiNodeClassMapping, typeArguments: [ValdiModelPropertyType]?) throws -> String?
 }
 
 class SchemaWriter {
@@ -39,9 +39,28 @@ class SchemaWriter {
     }
 
     func appendInterface(_ clsName: String, properties: [ValdiModelProperty]) throws {
-        str.append("c+ '\(clsName)'{")
+        str.append("c+ '\(clsName)'")
         try appendProperties(properties: properties, isMethod: true)
-        str.append("}")
+    }
+
+    func appendStringEnum(_ enumName: String, enumCases: [EnumCase<String>]) throws {
+        try appendEnum(enumName, enumTypename: "s", enumCases: enumCases) { value in
+            return "'\(value)'"
+        }
+    }
+
+    func appendIntEnum(_ enumName: String, enumCases: [EnumCase<Int>]) throws {
+        try appendEnum(enumName, enumTypename: "i", enumCases: enumCases) { value in
+            return "\(value)"
+        }
+    }
+
+    private func appendEnum<T>(_ enumName: String, enumTypename: String, enumCases: [EnumCase<T>], caseToString: (T) -> String) throws {
+        str.append("e<\(enumTypename)> '\(enumName)'")
+        try appendList(list: enumCases, startDelimiter: "{", endDelimiter: "}", handle: { enumCase in
+            appendPropertyName(enumCase.name)
+            str.append(caseToString(enumCase.value))
+        })
     }
 
     func appendFunction(returnType: ValdiModelPropertyType, parameters: [ValdiModelProperty], isOptional: Bool, isMethod: Bool, isSingleCall: Bool, shouldCallOnWorkerThread: Bool) throws {
@@ -76,7 +95,7 @@ class SchemaWriter {
     }
 
     func appendTypeRef(nodeMapping: ValdiNodeClassMapping, boxed: Bool, isOptional: Bool, hasConverter: Bool) throws {
-        guard let className = try listener.getClassName(nodeMapping: nodeMapping) else {
+        guard let className = try listener.getClassName(nodeMapping: nodeMapping, typeArguments: nil) else {
             doAppendTypeName("u", boxed: false, isOptional: isOptional)
             return
         }
@@ -97,7 +116,7 @@ class SchemaWriter {
                           isOptional: Bool,
                           hasConverter: Bool,
                           typeArguments: [ValdiModelPropertyType]) throws {
-        guard let className = try listener.getClassName(nodeMapping: nodeMapping) else {
+        guard let className = try listener.getClassName(nodeMapping: nodeMapping, typeArguments: typeArguments) else {
             doAppendTypeName("u", boxed: false, isOptional: isOptional)
             return
         }

@@ -178,7 +178,7 @@ final class TypeScriptCompilerManager {
                 compileNativePromises.append(self.compileNative(bundleInfo: bundleInfo, compilationPaths: compilationPathsWithNativeCompilation, compileSequence: compileSequence))
             } else {
                 // Add empty sources as it will be used by the Bazel rule
-                compileNativePromises.append(Promise(data: [TypeScriptCompilerManager.generateTSNativeSource(bundleInfo: bundleInfo, inputNativeSources: [])]))
+                compileNativePromises.append(Promise(data: TypeScriptCompilerManager.generateTSNativeSource(bundleInfo: bundleInfo, inputNativeSources: [])))
             }
         }
 
@@ -439,7 +439,7 @@ final class TypeScriptCompilerManager {
         }
     }
 
-    private static func generateTSNativeSource(bundleInfo: CompilationItem.BundleInfo, inputNativeSources: [NativeSource]) -> CompilationItem {
+    private static func generateTSNativeSource(bundleInfo: CompilationItem.BundleInfo, inputNativeSources: [NativeSource]) -> [CompilationItem] {
         let outputNativeSourceFile: File
         if inputNativeSources.isEmpty {
             outputNativeSourceFile = .string("")
@@ -460,7 +460,7 @@ final class TypeScriptCompilerManager {
         let filename = "\(bundleInfo.name)_native.c"
 
         let sourceURL = bundleInfo.baseDir
-        return CompilationItem(sourceURL: sourceURL,
+        let item = CompilationItem(sourceURL: sourceURL,
                                relativeProjectPath: bundleInfo.relativeProjectPath(forItemPath: filename),
                                kind: .nativeSource(NativeSource(relativePath: nil,
                                                                 filename: filename,
@@ -470,12 +470,14 @@ final class TypeScriptCompilerManager {
                                bundleInfo: bundleInfo,
                                platform: nil,
                                outputTarget: .all)
+
+        return [item.with(newPlatform: .android), item.with(newPlatform: .ios)]
     }
 
     private func compileNative(bundleInfo: CompilationItem.BundleInfo, compilationPaths: [String], compileSequence: CompilationSequence) -> Promise<[CompilationItem]> {
         logger.debug(">> Compiling TypeScript files into native for module \(bundleInfo.name)")
         return typeScriptCompiler.compileNative(filePaths: compilationPaths.sorted(), compileSequence: compileSequence).then { nativeSources in
-            return [TypeScriptCompilerManager.generateTSNativeSource(bundleInfo: bundleInfo, inputNativeSources: nativeSources)]
+            return TypeScriptCompilerManager.generateTSNativeSource(bundleInfo: bundleInfo, inputNativeSources: nativeSources)
         }
     }
 

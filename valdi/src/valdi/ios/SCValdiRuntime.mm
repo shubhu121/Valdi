@@ -34,7 +34,7 @@
 #import "valdi/runtime/Runtime.hpp"
 #import <yoga/UIView+Yoga.h>
 #import "SCValdiJSRuntimeImpl.h"
-#import "valdi/SCNValdiJSRuntime+Private.h"
+#import "valdi_core/SCNValdiCoreJSRuntime+Private.h"
 
 #import "valdi/runtime/Attributes/AttributesBindingContextImpl.hpp"
 
@@ -288,9 +288,9 @@
     return _jsRuntime;
 }
 
-- (SCNValdiJSRuntime *)getJsRuntime
+- (SCNValdiCoreJSRuntime *)getJsRuntime
 {
-    return djinni_generated_client::valdi::JSRuntime::fromCpp(Valdi::strongRef(self->_runtime->getJavaScriptRuntime()));
+    return djinni_generated_client::valdi_core::JSRuntime::fromCpp(Valdi::strongRef(self->_runtime->getJavaScriptRuntime()));
 }
 
 - (void)getJSRuntimeWithBlock:(void (^)(id<SCValdiJSRuntime>))block

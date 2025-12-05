@@ -29,7 +29,7 @@ class Error {
 public:
     Error();
     explicit Error(StringBox message);
-    explicit Error(const std::string& message);
+    explicit Error(const std::string_view& message);
     explicit Error(const char* message);
     Error(StringBox message, StringBox stackTrace, const Error* cause);
     Error(StringBox message, int32_t errorCode);
